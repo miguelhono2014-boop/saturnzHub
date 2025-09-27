@@ -1,0 +1,213 @@
+--[[
+  SunsetMobileUI.lua
+  Pôr do Sol Realista, chão super refletivo, sol intenso
+  Botão arrastável por toque (mobile/PC), colorido para mostrar estado (on/off), menor, "X" no canto para fechar
+  Coloque como LocalScript em StarterGui
+--]]
+
+local Lighting = game:GetService("Lighting")
+local Players = game:GetService("Players")
+local TweenService = game:GetService("TweenService")
+
+local player = Players.LocalPlayer
+local playerGui = player:WaitForChild("PlayerGui")
+
+-- UI Layout
+local screenGui = Instance.new("ScreenGui")
+screenGui.ResetOnSpawn = false
+screenGui.Parent = playerGui
+
+local frame = Instance.new("Frame")
+frame.Size = UDim2.new(0, 140, 0, 40)
+frame.Position = UDim2.new(0, 18, 0, 40)
+frame.BackgroundColor3 = Color3.fromRGB(28, 31, 50)
+frame.BackgroundTransparency = 0.06
+frame.Active = true
+frame.Parent = screenGui
+
+local corner = Instance.new("UICorner", frame)
+corner.CornerRadius = UDim.new(0, 15)
+
+local button = Instance.new("TextButton")
+button.Size = UDim2.new(1, -36, 1, 0)
+button.Position = UDim2.new(0, 0, 0, 0)
+button.BackgroundColor3 = Color3.fromRGB(200, 80, 80)
+button.Text = "Ativar"
+button.Font = Enum.Font.GothamBold
+button.TextSize = 17
+button.TextColor3 = Color3.fromRGB(255, 255, 255)
+button.AutoButtonColor = false
+button.Parent = frame
+
+local buttonCorner = Instance.new("UICorner", button)
+buttonCorner.CornerRadius = UDim.new(0, 12)
+
+local close = Instance.new("TextButton")
+close.Size = UDim2.new(0, 36, 0, 36)
+close.Position = UDim2.new(1, -34, 0, 2)
+close.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
+close.Text = "✕"
+close.Font = Enum.Font.GothamBold
+close.TextSize = 19
+close.TextColor3 = Color3.fromRGB(230, 120, 120)
+close.AutoButtonColor = true
+close.Parent = frame
+
+local closeCorner = Instance.new("UICorner", close)
+closeCorner.CornerRadius = UDim.new(1, 0)
+
+-- Mensagem rápida
+local function showMsg(txt)
+    local msg = Instance.new("TextLabel")
+    msg.Size = UDim2.new(0.6,0,0,28)
+    msg.Position = UDim2.new(0.2,0,0.88,0)
+    msg.BackgroundTransparency = 0.35
+    msg.BackgroundColor3 = Color3.fromRGB(40,40,25)
+    msg.Text = txt
+    msg.Font = Enum.Font.GothamBold
+    msg.TextColor3 = Color3.fromRGB(255,233,90)
+    msg.TextScaled = true
+    msg.AnchorPoint = Vector2.new(0,0)
+    msg.ZIndex = 99
+    local c = Instance.new("UICorner", msg)
+    c.CornerRadius = UDim.new(0, 10)
+    msg.Parent = screenGui
+    TweenService:Create(msg, TweenInfo.new(0.16), {BackgroundTransparency=0.19, TextTransparency=0}):Play()
+    task.wait(0.7)
+    TweenService:Create(msg, TweenInfo.new(0.3), {BackgroundTransparency=1, TextTransparency=1}):Play()
+    task.wait(0.3)
+    msg:Destroy()
+end
+
+-- Efeitos de chão ainda mais realista
+local function setFloorReflectance(val)
+    for _, part in ipairs(workspace:GetDescendants()) do
+        if part:IsA("BasePart") and part.Anchored and part.Size.X > 8 and part.Size.Z > 8 and math.abs(part.Position.Y) < 1000 then
+            part.Reflectance = val
+            part.Material = val > 0 and Enum.Material.Mirror or Enum.Material.Concrete
+        end
+    end
+end
+
+-- Flare do Sol
+local sunObj
+local function setSun(enable)
+    if enable then
+        if not sunObj then
+            sunObj = Instance.new("Part")
+            sunObj.Size = Vector3.new(1,1,1)
+            sunObj.Anchored = true
+            sunObj.CanCollide = false
+            sunObj.Transparency = 1
+            sunObj.Name = "RealisticSunFlare"
+            sunObj.Parent = workspace
+
+            local sunLight = Instance.new("PointLight", sunObj)
+            sunLight.Color = Color3.fromRGB(255, 235, 130)
+            sunLight.Brightness = 60 -- Muito mais intenso
+            sunLight.Range = 1200
+            sunLight.Shadows = true
+
+            local sunFlare = Instance.new("BillboardGui", sunObj)
+            sunFlare.Size = UDim2.new(0, 170, 0, 170)
+            sunFlare.AlwaysOnTop = true
+            local img = Instance.new("ImageLabel", sunFlare)
+            img.BackgroundTransparency = 1
+            img.Size = UDim2.new(1,0,1,0)
+            img.Image = "rbxassetid://14668741420"
+            img.ImageColor3 = Color3.fromRGB(255,235,130)
+            img.ImageTransparency = 0.14
+        end
+        sunObj.Position = Vector3.new(0, 600, -300)
+    else
+        if sunObj then sunObj:Destroy() sunObj = nil end
+    end
+end
+
+-- Lighting super realista
+local function setLighting(enable)
+    if enable then
+        Lighting.TimeOfDay = "17:30:00"
+        Lighting.OutdoorAmbient = Color3.fromRGB(210, 170, 120)
+        Lighting.Brightness = 8 -- Bem mais brilho!
+        Lighting.ColorShift_Bottom = Color3.fromRGB(140, 80, 28)
+        Lighting.ColorShift_Top = Color3.fromRGB(255, 210, 120)
+        Lighting.FogStart = 40
+        Lighting.FogEnd = 520
+        Lighting.FogColor = Color3.fromRGB(255, 200, 150)
+        Lighting.EnvironmentDiffuseScale = 1.15
+        Lighting.EnvironmentSpecularScale = 2.6
+    else
+        Lighting.TimeOfDay = "14:00:00"
+        Lighting.OutdoorAmbient = Color3.fromRGB(150, 150, 150)
+        Lighting.Brightness = 2.4
+        Lighting.ColorShift_Bottom = Color3.new(0,0,0)
+        Lighting.ColorShift_Top = Color3.new(0,0,0)
+        Lighting.FogStart = 350
+        Lighting.FogEnd = 1400
+        Lighting.FogColor = Color3.fromRGB(210,210,255)
+        Lighting.EnvironmentDiffuseScale = 1
+        Lighting.EnvironmentSpecularScale = 1
+    end
+end
+
+-- Ativar/desativar geral
+local ativo = false
+local function updateButtonState()
+    if ativo then
+        button.BackgroundColor3 = Color3.fromRGB(65, 180, 90)
+        button.Text = "Ativado"
+    else
+        button.BackgroundColor3 = Color3.fromRGB(200, 80, 80)
+        button.Text = "Desativado"
+    end
+end
+
+local function toggle()
+    ativo = not ativo
+    setLighting(ativo)
+    setFloorReflectance(ativo and 0.78 or 0)
+    setSun(ativo)
+    updateButtonState()
+    showMsg(ativo and "Pôr-do-sol ativado" or "Pôr-do-sol desativado")
+end
+
+button.MouseButton1Click:Connect(toggle)
+close.MouseButton1Click:Connect(function() screenGui:Destroy() end)
+
+-- Arrastar compatível com mobile (Touch e Mouse)
+local dragging = false
+local dragStart, startPos
+
+local function updateInput(input)
+    local delta = input.Position - dragStart
+    frame.Position = UDim2.new(
+        startPos.X.Scale, math.clamp(startPos.X.Offset + delta.X, 0, workspace.CurrentCamera.ViewportSize.X-140),
+        startPos.Y.Scale, math.clamp(startPos.Y.Offset + delta.Y, 0, workspace.CurrentCamera.ViewportSize.Y-40)
+    )
+end
+
+frame.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseButton1 then
+        dragging = true
+        dragStart = input.Position
+        startPos = frame.Position
+        input.Changed:Connect(function()
+            if input.UserInputState == Enum.UserInputState.End then
+                dragging = false
+            end
+        end)
+    end
+end)
+
+frame.InputChanged:Connect(function(input)
+    if dragging and (input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseMovement) then
+        updateInput(input)
+    end
+end)
+
+-- Inicializa desativado e botão vermelho
+setLighting(false)
+setFloorReflectance(0)
+setSun(false)
+updateButtonState()
